@@ -18,7 +18,7 @@ const ReportsPage = () => {
     { name: 'Apr', leads: 280, closed: 32 },
   ];
 
-  const COLORS = ['#0f172a', '#b59410', '#3b82f6', '#10b981'];
+  const COLORS = ['#2d1b10', '#c5a059', '#5d4037', '#10b981'];
 
   return (
     <div className="container animate-fade">
@@ -72,8 +72,8 @@ const ReportsPage = () => {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="leads" fill="#0f172a" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="closed" fill="#b59410" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="leads" fill="#2d1b10" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="closed" fill="#c5a059" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

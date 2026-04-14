@@ -1,17 +1,17 @@
 :root {
-  --primary-bg: #f8fafc;
-  --sidebar-bg: #0f172a; /* Dark Blue */
+  --primary-bg: #fdfdfd;
+  --sidebar-bg: #2d1b10; /* Deep Brown from logo */
   --sidebar-text: #f1f5f9;
-  --accent: #b59410; /* Gold */
-  --accent-hover: #967a0d;
-  --text-main: #1e293b;
+  --accent: #c5a059; /* Gold from logo */
+  --accent-hover: #b38d4b;
+  --text-main: #2d1b10;
   --text-muted: #64748b;
   --white: #ffffff;
   --border: #e2e8f0;
   --success: #10b981;
   --danger: #ef4444;
   --warning: #f59e0b;
-  --info: #3b82f6;
+  --info: #c5a059; /* Changing Blue info to Gold/Brown theme compatible color */
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
@@ -116,25 +116,37 @@ a {
 }
 
 .sidebar-logo {
-  padding: 2.5rem 2rem;
+  padding: 2rem;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
   font-weight: 700;
   font-size: 1.25rem;
   letter-spacing: -0.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 1rem;
 }
 
-.logo-box {
-  width: 38px;
-  height: 38px;
-  background: var(--accent);
-  color: white;
+.logo-img {
+  width: 42px;
+  height: 42px;
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
+  object-fit: cover;
+  border: 1px solid var(--accent);
+}
+
+.brand-name {
+  color: var(--white);
+  line-height: 1.2;
+}
+
+.gold-text {
+  color: var(--accent);
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .sidebar-nav {
@@ -166,7 +178,46 @@ a {
 
 .sidebar-footer {
   padding: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.profile-pic {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  object-fit: cover;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--white);
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.footer-link {
+  margin-bottom: 0 !important;
 }
 
 .logout-btn {
@@ -220,7 +271,7 @@ a {
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(181, 148, 16, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(197, 160, 89, 0.2);
 }
 
 .btn-primary:hover {

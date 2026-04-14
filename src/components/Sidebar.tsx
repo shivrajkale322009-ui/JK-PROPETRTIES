@@ -29,8 +29,8 @@ const Sidebar = () => {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <div className="logo-box">JK</div>
-        <span>JK Properties</span>
+        <img src="/logo.png" alt="JK Logo" className="logo-img" />
+        <span className="brand-name">JK <span className="gold-text">Properties</span></span>
       </div>
 
       <nav className="sidebar-nav">
@@ -47,7 +47,14 @@ const Sidebar = () => {
       </nav>
 
       <div className="sidebar-footer">
-        <Link href="/settings" className="nav-link">
+        <div className="user-profile">
+          <img src="/logo.png" alt="Profile" className="profile-pic" />
+          <div className="user-info">
+            <p className="user-name">Shivraj Kale</p>
+            <p className="user-role">Administrator</p>
+          </div>
+        </div>
+        <Link href="/settings" className="nav-link footer-link">
           <Settings size={20} />
           <span>Settings</span>
         </Link>

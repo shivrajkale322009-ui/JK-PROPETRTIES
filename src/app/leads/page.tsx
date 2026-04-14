@@ -62,11 +62,12 @@ const AllLeadsPage = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "New Lead": return "#3b82f6";
+      case "New Lead": return "var(--accent)";
       case "Interested": return "#f59e0b";
       case "Closed": return "#10b981";
       case "Lost": return "#ef4444";
-      case "Follow-Up Pending": return "#8b5cf6";
+      case "Follow-Up Pending": return "#8b5cf6"; // I'll keep this one or change it to a brown
+      case "Contacted": return "#a67c52";
       default: return "#64748b";
     }
   };
