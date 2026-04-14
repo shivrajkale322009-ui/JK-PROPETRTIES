@@ -11,10 +11,16 @@ import {
   BarChart3, 
   Settings, 
   LogOut,
-  Plus
+  Plus,
+  X
 } from "lucide-react";
 
-const Sidebar = () => {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const pathname = usePathname();
 
   const menuItems = [
@@ -27,10 +33,24 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen ? "open" : ""}`}>
       <div className="sidebar-logo">
-        <img src="/logo.png" alt="JK Logo" className="logo-img" />
-        <span className="brand-name">JK <span className="gold-text">Properties</span></span>
+        <div className="logo-group">
+          <img src="/logo.png" alt="JK Logo" className="logo-img" />
+          <div className="brand-info">
+            <span className="brand-name">JK <span className="gold-text">Properties</span></span>
+          </div>
+        </div>
+        <button className="mobile-close-btn" onClick={onClose} aria-label="Close menu">
+          <X size={24} />
+        </button>
+      </div>
+
+      <div className="sidebar-action">
+        <button className="add-lead-sidebar-btn">
+          <Plus size={20} />
+          <span>Add New Lead</span>
+        </button>
       </div>
 
       <nav className="sidebar-nav">
@@ -39,6 +59,7 @@ const Sidebar = () => {
             key={item.href} 
             href={item.href}
             className={`nav-link ${pathname === item.href ? "active" : ""}`}
+            onClick={onClose}
           >
             {item.icon}
             <span>{item.title}</span>

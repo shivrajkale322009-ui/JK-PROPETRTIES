@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import ClientLayout from "@/components/ClientLayout";
 
 export const metadata: Metadata = {
   title: "JK Properties Lead Manager",
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#2d1b10",
 };
 
 export default function RootLayout({
@@ -20,13 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="layout-wrapper">
-          <Sidebar />
-          <main className="main-content">
-            {children}
-          </main>
-        </div>
-
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );
