@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 
@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "JK Properties Lead Manager",
   description: "Production-ready Real Estate Lead Management System",
   manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
   themeColor: "#0f172a",
 };
 
