@@ -2,6 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
+import { useState, useEffect } from "react";
 import { 
   Users, 
   MessageSquare, 
@@ -16,20 +17,38 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function Dashboard() {
-  const metrics = [
-    { title: "Today's Leads", value: "24", icon: <Users size={20} />, trend: "+4 from yesterday" },
-    { title: "WhatsApp", value: "12", icon: <MessageSquare size={20} />, trend: "8 unread inquiries" },
-    { title: "Follow-ups", value: "8", icon: <Clock size={20} />, trend: "3 overdue tasks" },
-    { title: "Site Visits", value: "6", icon: <MapPin size={20} />, trend: "Scheduled for today" },
-    { title: "Closed Deals", value: "14", icon: <CheckCircle2 size={20} />, trend: "This month's success" },
-  ];
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const recentLeads = [
-    { name: "Sanjay Raut", budget: "₹85L - 1.2Cr", location: "Baner, Pune", status: "Hot", time: "10m ago" },
-    { name: "Meera Nair", budget: "₹45L - 60L", location: "Hinjewadi", status: "Warm", time: "45m ago" },
-    { name: "Vikram Rathore", budget: "₹2.5Cr+", location: "Koregaon Park", status: "Visit Scheduled", time: "2h ago" },
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        if (!db) return;
+        const q = query(collection(db, "leads"), orderBy("createdAt", "desc"), limit(5));
+        const snapshot = await getDocs(q);
+        const fetchedLeads = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setLeads(fetchedLeads);
+      } catch (error) {
+        console.error("Dashboard fetch error: ", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
+
+  const totalLeads = leads.length; // Just an approximation based on fetched limit
+  const hotLeads = leads.filter(l => l.status && l.status.toLowerCase() === 'hot').length;
+
+  const metrics = [
+    { title: "Total Leads", value: loading ? "-" : totalLeads.toString(), icon: <Users size={20} />, trend: "Active in database" },
+    { title: "Hot Leads", value: loading ? "-" : hotLeads.toString(), icon: <TrendingUp size={20} />, trend: "Requires attention" },
+    { title: "WhatsApp", value: "-", icon: <MessageSquare size={20} />, trend: "Integration pending" },
+    { title: "Follow-ups", value: "-", icon: <Clock size={20} />, trend: "Active tasks" },
   ];
 
   return (
@@ -53,18 +72,19 @@ export default function Dashboard() {
               <p className="native-subtitle">JK Properties CRM</p>
             </div>
           </div>
-          <button className="icon-btn-gold ripple">
-             <Plus size={22} />
-          </button>
+          <Link href="/leads/add">
+            <button className="icon-btn-gold ripple">
+               <Plus size={22} />
+            </button>
+          </Link>
         </div>
       </motion.div>
 
       <div className="content-area">
-        {/* Horizontal scroll for metrics if needed, or grid for mobile */}
         <section className="metrics-section">
           <div className="native-section-header">
             <h3>Overview</h3>
-            <span>Today</span>
+            <span>Live Data</span>
           </div>
           <div className="metrics-grid">
             {metrics.map((metric, i) => (
@@ -96,50 +116,56 @@ export default function Dashboard() {
           </div>
           <div className="task-banner">
              <div className="task-banner-text">
-                <h4>3 Overdue Follow-ups</h4>
-                <p>Don't lose these potential leads!</p>
+                <h4>System Ready</h4>
+                <p>Start logging tasks for your properties.</p>
              </div>
-             <button className="banner-action-btn">Fix Now</button>
+             <Link href="/follow-ups">
+              <button className="banner-action-btn">Go to Tasks</button>
+             </Link>
           </div>
         </section>
 
         {/* Recent Inquiries List */}
         <section className="recent-list-section">
           <div className="native-section-header">
-            <h3>Recent Hot Leads</h3>
+            <h3>Recent Leads</h3>
             <Link href="/leads" className="view-link">See All</Link>
           </div>
           <div className="lead-compact-list">
-            {recentLeads.map((lead, i) => (
-              <motion.div 
-                key={i} 
-                className="lead-compact-card ripple"
-                whileTap={{ scale: 0.98 }}
-              >
-                <div className="lead-avatar">
-                  {lead.name.charAt(0)}
-                </div>
-                <div className="lead-main-info">
-                  <div className="lead-top">
-                    <span className="lead-name">{lead.name}</span>
-                    <span className="lead-time">{lead.time}</span>
+            {loading ? (
+              <p style={{textAlign: 'center', fontSize: '0.9rem', color: 'gray', padding: '10px 0'}}>Loading leads...</p>
+            ) : leads.length === 0 ? (
+              <p style={{textAlign: 'center', fontSize: '0.9rem', color: 'gray', padding: '10px 0'}}>No leads found in database.</p>
+            ) : (
+              leads.map((lead, i) => (
+                <motion.div 
+                  key={lead.id || i} 
+                  className="lead-compact-card ripple"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <div className="lead-avatar">
+                    {(lead.name || "?").charAt(0).toUpperCase()}
                   </div>
-                  <div className="lead-meta-row">
-                    <span className="lead-budget">{lead.budget}</span>
-                    <span className="lead-dot">•</span>
-                    <span className="lead-loc">{lead.location}</span>
+                  <div className="lead-main-info">
+                    <div className="lead-top">
+                      <span className="lead-name">{lead.name || "Unknown"}</span>
+                      <span className="lead-time">Recent</span>
+                    </div>
+                    <div className="lead-meta-row">
+                      <span className="lead-budget">{lead.budget || "N/A"}</span>
+                      <span className="lead-dot">•</span>
+                      <span className="lead-loc">{lead.location || "N/A"}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="lead-status-chip" data-status={lead.status.toLowerCase()}>
-                  {lead.status}
-                </div>
-              </motion.div>
-            ))}
+                  <div className="lead-status-chip" data-status={(lead.status || "new").toLowerCase()}>
+                    {lead.status || "New"}
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
         </section>
       </div>
-      
-      {/* Global WhatsApp FAB will be added in ClientLayout */}
     </div>
   );
 }

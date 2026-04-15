@@ -3,25 +3,22 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { Lock, Mail } from "lucide-react";
+import { LogIn } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { loginWithGoogle } = useAuth(); // Destructuring loginWithGoogle instead
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGoogleSignIn = async () => {
     setError("");
     setLoading(true);
 
     try {
-      await login(email, password);
+      await loginWithGoogle();
     } catch (err: any) {
-      setError(err.message || "Failed to log in. Please check your credentials.");
+      setError(err.message || "Failed to log in with Google. Please try again.");
       setLoading(false);
     }
   };
@@ -42,47 +39,20 @@ export default function LoginPage() {
           <p className="login-subtitle">Premium Lead Management</p>
         </div>
 
-        <form onSubmit={handleLogin} className="login-form">
+        <div className="login-form">
           {error && <div className="login-error">{error}</div>}
 
-          <div className="input-group">
-            <label htmlFor="email">Email</label>
-            <div className="input-wrapper">
-              <Mail className="input-icon" size={20} />
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="password">Password</label>
-            <div className="input-wrapper">
-              <Lock className="input-icon" size={20} />
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-              />
-            </div>
-          </div>
-
           <button 
-            type="submit" 
+            type="button" 
+            onClick={handleGoogleSignIn}
             className="login-submit-btn" 
             disabled={loading}
+            style={{ display: 'flex', gap: '10px' }}
           >
-            {loading ? "Signing In..." : "Sign In"}
+            <LogIn size={20} />
+            {loading ? "Signing In..." : "Sign in with Google"}
           </button>
-        </form>
+        </div>
       </motion.div>
     </div>
   );

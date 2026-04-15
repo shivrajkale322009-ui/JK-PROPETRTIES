@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Search, 
   Filter, 
@@ -12,20 +12,49 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-const LEADS_DATA = [
-  { id: "1", name: "Ramesh Pawar", phone: "+91 98765 43210", budget: "₹75L - 90L", location: "Wakad, Pune", status: "Hot", type: "2BHK" },
-  { id: "2", name: "Sunita Deshpande", phone: "+91 98221 12345", budget: "₹1.2Cr - 1.5Cr", location: "Baner", status: "Warm", type: "3BHK" },
-  { id: "3", name: "Amit Kulkarni", phone: "+91 90112 33445", budget: "₹45L - 55L", location: "Ravet", status: "New", type: "1BHK" },
-  { id: "4", name: "Priya Sharma", phone: "+91 99887 76655", budget: "₹2.2Cr+", location: "Koregaon Park", status: "Visit Scheduled", type: "Penthouse" },
-];
+// Define interface for Lead based on usage
+interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+  budget: string;
+  location: string;
+  status: string;
+  type?: string;
+}
 
 export default function LeadsList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredLeads = LEADS_DATA.filter(lead => 
-    lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    lead.location.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    const fetchLeads = async () => {
+      try {
+        if (!db) return;
+        const q = query(collection(db, "leads"), orderBy("createdAt", "desc"));
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Lead[];
+        setLeads(data);
+      } catch (error) {
+        console.error("Error fetching leads:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchLeads();
+  }, []);
+
+  const filteredLeads = leads.filter(lead => 
+    (lead.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (lead.location || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -34,7 +63,7 @@ export default function LeadsList() {
         <div className="app-bar-content">
           <div>
             <h1 className="native-title">All Leads</h1>
-            <p className="native-subtitle">{filteredLeads.length} active prospects</p>
+            <p className="native-subtitle">{loading ? "Loading..." : `${filteredLeads.length} active prospects`}</p>
           </div>
           <div className="header-actions">
              <button className="icon-btn-transparent"><Search size={22} /></button>
@@ -60,42 +89,52 @@ export default function LeadsList() {
         </div>
 
         <div className="leads-vertical-list">
-          <AnimatePresence>
-            {filteredLeads.map((lead, i) => (
-              <motion.div 
-                key={lead.id}
-                layout
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Link href={`/leads/${lead.id}`} className="lead-card-native ripple">
-                  <div className="lead-card-body">
-                    <div className="lead-avatar-circle">
-                      {lead.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <div className="lead-info-main">
-                      <div className="lead-name-row">
-                        <span className="lead-name">{lead.name}</span>
-                        <div className="status-dot" data-status={lead.status.toLowerCase()} />
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+              Loading leads from database...
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+              No leads found. Drop the demo logic and add some live data!
+            </div>
+          ) : (
+            <AnimatePresence>
+              {filteredLeads.map((lead, i) => (
+                <motion.div 
+                  key={lead.id}
+                  layout
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ scale: 0.9, opacity: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                >
+                  <Link href={`/leads/${lead.id}`} className="lead-card-native ripple">
+                    <div className="lead-card-body">
+                      <div className="lead-avatar-circle">
+                        {(lead.name || "?").split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
                       </div>
-                      <span className="lead-sub">{lead.phone}</span>
-                      <div className="lead-tags">
-                        <span className="tag-budget">{lead.budget}</span>
-                        <span className="tag-loc">{lead.location}</span>
+                      <div className="lead-info-main">
+                        <div className="lead-name-row">
+                          <span className="lead-name">{lead.name}</span>
+                          <div className="status-dot" data-status={(lead.status || "new").toLowerCase()} />
+                        </div>
+                        <span className="lead-sub">{lead.phone}</span>
+                        <div className="lead-tags">
+                          {lead.budget && <span className="tag-budget">{lead.budget}</span>}
+                          {lead.location && <span className="tag-loc">{lead.location}</span>}
+                        </div>
                       </div>
+                      <ChevronRight size={18} className="text-muted" />
                     </div>
-                    <ChevronRight size={18} className="text-muted" />
-                  </div>
-                  <div className="lead-card-actions">
-                     <button className="action-btn-circle wa"><MessageCircle size={18} /></button>
-                     <button className="action-btn-circle call"><PhoneCall size={18} /></button>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </AnimatePresence>
+                    <div className="lead-card-actions">
+                       <button className="action-btn-circle wa"><MessageCircle size={18} /></button>
+                       <button className="action-btn-circle call"><PhoneCall size={18} /></button>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
         </div>
       </div>
 
