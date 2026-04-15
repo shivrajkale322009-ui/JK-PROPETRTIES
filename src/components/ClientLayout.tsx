@@ -1,30 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Sidebar from "@/components/Sidebar";
-import {
-  LayoutDashboard, Users, Target, Calendar, MessageSquare,
-} from "lucide-react";
+import DesktopSidebar from "@/components/navigation/Sidebar";
+import MobileDrawer from "@/components/navigation/MobileDrawer";
+import BottomNav from "@/components/navigation/BottomNav";
+import { MessageSquare } from "lucide-react";
 import { usePathname } from "next/navigation";
-import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const pathname = usePathname();
 
-  // Close sidebar on route change
-  useEffect(() => { setIsSidebarOpen(false); }, [pathname]);
+  // Close drawer on route change
+  useEffect(() => { setIsDrawerOpen(false); }, [pathname]);
 
-  // Lock body scroll when sidebar open
+  // Lock body scroll when drawer is open
   useEffect(() => {
-    document.body.style.overflow = isSidebarOpen ? "hidden" : "";
+    document.body.style.overflow = isDrawerOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [isSidebarOpen]);
+  }, [isDrawerOpen]);
 
   // Listen for hamburger toggle from page-level app-bars
   useEffect(() => {
-    const handler = () => setIsSidebarOpen(prev => !prev);
+    const handler = () => setIsDrawerOpen(prev => !prev);
     window.addEventListener("toggle-sidebar", handler);
     return () => window.removeEventListener("toggle-sidebar", handler);
   }, []);
@@ -41,22 +40,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <>
-      {/* Navigation Drawer Overlay */}
-      <div
-        className={`sidebar-overlay ${isSidebarOpen ? "show" : ""}`}
-        onClick={() => setIsSidebarOpen(false)}
-      />
+    <div className="crm-layout-wrapper">
+      {/* Desktop / Tablet Sidebar (Hidden on Mobile automatically via CSS) */}
+      <DesktopSidebar />
 
-      {/* Navigation Drawer */}
-      <Sidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        onMenuToggle={() => setIsSidebarOpen(true)}
-      />
+      {/* Mobile Drawer (Only mounts when visible & hidden via CSS on Desktop) */}
+      <MobileDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
 
-      {/* Page Content — each page manages its own app-bar */}
-      <main className="app-main">
+      {/* Page Content */}
+      <main className="app-main content-wrapper">
         {children}
       </main>
 
@@ -71,24 +63,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       </motion.button>
 
       {/* Android-style Bottom Navigation (mobile only) */}
-      <nav className="bottom-nav">
-        <Link href="/" className={`bottom-nav-link ${pathname === "/" ? "active" : ""}`}>
-          <LayoutDashboard size={22} />
-          <span>Home</span>
-        </Link>
-        <Link href="/leads" className={`bottom-nav-link ${pathname?.startsWith("/leads") ? "active" : ""}`}>
-          <Users size={22} />
-          <span>Leads</span>
-        </Link>
-        <Link href="/pipeline" className={`bottom-nav-link ${pathname === "/pipeline" ? "active" : ""}`}>
-          <Target size={22} />
-          <span>Pipeline</span>
-        </Link>
-        <Link href="/follow-ups" className={`bottom-nav-link ${pathname === "/follow-ups" ? "active" : ""}`}>
-          <Calendar size={22} />
-          <span>Tasks</span>
-        </Link>
-      </nav>
-    </>
+      <BottomNav />
+    </div>
   );
 }

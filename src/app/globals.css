@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('./dashboard.css');
+@import url('./navigation.css');
 
 :root {
   --primary-bg: #f7f8f9;
@@ -1380,10 +1382,7 @@ a { color: inherit; text-decoration: none; }
 /* --- Main page wrapper --- */
 .app-main { min-height: 100vh; background: var(--primary-bg); }
 @media (min-width: 1025px) {
-  .app-main { margin-left: 280px; }
-  .sidebar { transform: translateX(0) !important; }
-  .sidebar-overlay { display: none !important; }
-  .mobile-close-btn { display: none !important; }
+  .app-main { margin-left: 0; }
   .bottom-nav { display: none !important; }
   .whatsapp-fab { display: none !important; }
   .android-fab { display: none !important; }
