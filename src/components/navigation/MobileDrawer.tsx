@@ -40,7 +40,7 @@ const NAV_CONFIG = [
   }
 ];
 
-const drawerVariants = {
+const drawerVariants: any = {
   hidden: { x: "-100%" },
   visible: { x: 0, transition: { type: "tween", duration: 0.25 } },
   exit: { x: "-100%", transition: { type: "tween", duration: 0.2 } }
