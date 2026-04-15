@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for security validation
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      // Example: Check if the user has an admin claim OR their profile says admin
+      // return isAuthenticated() && request.auth.token.admin == true;
+      // Or checking an admins collection (costs a read):
+      // return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      
+      // Temporary stub for demonstration: only auth required
+      return isAuthenticated();
+    }
+
+    // --- RULES FOR COLLECTIONS ---
+
+    // 1. Leads collection
+    // Only authenticated users (e.g. agents/admins) can read or write leads.
+    match /leads/{leadId} {
+      // Allowing any authenticated user to create/read leads. 
+      // Adjust this to require "assigneeId" match if you want agent-level restrictions.
+      allow read, write: if isAuthenticated();
+    }
+
+    // 2. Properties collection
+    // Public reading of properties could be allowed if you display them to leads,
+    // otherwise restrict to authenticated staff.
+    match /properties/{propertyId} {
+      allow read: if isAuthenticated(); // or allow read: if true; for public visibility
+      allow write: if isAdmin(); // only admins can add/edit properties
+    }
+    
+    // 3. User Profiles collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Users can only edit their own profile
+      allow write: if isOwner(userId);
+    }
+    
+    // Fallback: Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

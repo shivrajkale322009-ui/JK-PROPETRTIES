@@ -1,179 +1,108 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Search, 
   Filter, 
-  Plus, 
-  MoreVertical, 
   MessageCircle, 
-  PhoneCall,
-  ChevronDown,
-  Users
+  PhoneCall, 
+  MoreVertical,
+  ChevronRight,
+  Plus
 } from "lucide-react";
-import LeadModal from "@/components/LeadModal";
-import { db } from "@/lib/firebase";
-import { collection, query, orderBy, onSnapshot, addDoc, Timestamp } from "firebase/firestore";
+import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
-const AllLeadsPage = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [leads, setLeads] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+const LEADS_DATA = [
+  { id: "1", name: "Ramesh Pawar", phone: "+91 98765 43210", budget: "₹75L - 90L", location: "Wakad, Pune", status: "Hot", type: "2BHK" },
+  { id: "2", name: "Sunita Deshpande", phone: "+91 98221 12345", budget: "₹1.2Cr - 1.5Cr", location: "Baner", status: "Warm", type: "3BHK" },
+  { id: "3", name: "Amit Kulkarni", phone: "+91 90112 33445", budget: "₹45L - 55L", location: "Ravet", status: "New", type: "1BHK" },
+  { id: "4", name: "Priya Sharma", phone: "+91 99887 76655", budget: "₹2.2Cr+", location: "Koregaon Park", status: "Visit Scheduled", type: "Penthouse" },
+];
 
-  useEffect(() => {
-    const q = query(collection(db, "leads"), orderBy("createdAt", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const leadsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setLeads(leadsList);
-    });
+export default function LeadsList() {
+  const [searchTerm, setSearchTerm] = useState("");
 
-    return () => unsubscribe();
-  }, []);
-
-  const handleAddLead = async (formData: any) => {
-    try {
-      await addDoc(collection(db, "leads"), {
-        ...formData,
-        status: "New Lead",
-        createdAt: Timestamp.now(),
-        history: [{
-          action: "Lead Created",
-          date: new Date().toISOString(),
-          note: "Initial entry"
-        }]
-      });
-    } catch (err) {
-      console.error("Error adding lead:", err);
-    }
-  };
-
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = lead.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         lead.phone?.includes(searchQuery);
-    const matchesStatus = statusFilter === "All" || lead.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "New Lead": return "var(--accent)";
-      case "Interested": return "#f59e0b";
-      case "Closed": return "#10b981";
-      case "Lost": return "#ef4444";
-      case "Follow-Up Pending": return "#8b5cf6"; // I'll keep this one or change it to a brown
-      case "Contacted": return "#a67c52";
-      default: return "#64748b";
-    }
-  };
+  const filteredLeads = LEADS_DATA.filter(lead => 
+    lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    lead.location.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="container animate-fade">
-      <header className="page-header">
-        <h1>All Leads</h1>
-        <button onClick={() => setIsModalOpen(true)} className="btn-primary">
-          <Plus size={18} />
-          <span>Add New Lead</span>
-        </button>
-      </header>
-
-      <div className="toolbar">
-        <div className="search-box">
-          <Search size={18} />
-          <input 
-            type="text" 
-            placeholder="Search by name or phone..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        
-        <div className="filters">
-          <div className="filter-group">
-            <Filter size={16} />
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="All">All Statuses</option>
-              <option value="New Lead">New Lead</option>
-              <option value="Contacted">Contacted</option>
-              <option value="Follow-Up Pending">Follow-Up Pending</option>
-              <option value="Interested">Interested</option>
-              <option value="Closed">Closed</option>
-            </select>
+    <div className="mobile-view">
+      <div className="app-bar">
+        <div className="app-bar-content">
+          <div>
+            <h1 className="native-title">All Leads</h1>
+            <p className="native-subtitle">{filteredLeads.length} active prospects</p>
+          </div>
+          <div className="header-actions">
+             <button className="icon-btn-transparent"><Search size={22} /></button>
           </div>
         </div>
       </div>
 
-      <div className="leads-table-container card">
-        <table className="leads-table">
-          <thead>
-            <tr>
-              <th>Lead Details</th>
-              <th>Status</th>
-              <th>Source</th>
-              <th>Location/Budget</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredLeads.map((lead) => (
-              <tr key={lead.id}>
-                <td>
-                  <div className="lead-main">
-                    <p className="name">{lead.fullName}</p>
-                    <p className="phone">{lead.phone}</p>
+      <div className="content-area">
+        <div className="search-filter-row">
+           <div className="native-search-bar">
+              <Search size={18} />
+              <input 
+                type="text" 
+                placeholder="Search name or location..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+           </div>
+           <button className="filter-pill">
+              <Filter size={16} />
+              <span>Filters</span>
+           </button>
+        </div>
+
+        <div className="leads-vertical-list">
+          <AnimatePresence>
+            {filteredLeads.map((lead, i) => (
+              <motion.div 
+                key={lead.id}
+                layout
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <Link href={`/leads/${lead.id}`} className="lead-card-native ripple">
+                  <div className="lead-card-body">
+                    <div className="lead-avatar-circle">
+                      {lead.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div className="lead-info-main">
+                      <div className="lead-name-row">
+                        <span className="lead-name">{lead.name}</span>
+                        <div className="status-dot" data-status={lead.status.toLowerCase()} />
+                      </div>
+                      <span className="lead-sub">{lead.phone}</span>
+                      <div className="lead-tags">
+                        <span className="tag-budget">{lead.budget}</span>
+                        <span className="tag-loc">{lead.location}</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={18} className="text-muted" />
                   </div>
-                </td>
-                <td>
-                  <span className="status-indicator" style={{ backgroundColor: `${getStatusColor(lead.status)}20`, color: getStatusColor(lead.status) }}>
-                    {lead.status}
-                  </span>
-                </td>
-                <td><span className="source-tag">{lead.source}</span></td>
-                <td>
-                  <div className="location-info">
-                    <p>{lead.location || "N/A"}</p>
-                    <span>{lead.budget || "No budget"}</span>
+                  <div className="lead-card-actions">
+                     <button className="action-btn-circle wa"><MessageCircle size={18} /></button>
+                     <button className="action-btn-circle call"><PhoneCall size={18} /></button>
                   </div>
-                </td>
-                <td>
-                  <div className="actions">
-                    <a 
-                      href={`https://wa.me/${lead.whatsapp?.replace(/\D/g, '')}`} 
-                      target="_blank" 
-                      className="wa-btn" 
-                      title="Send WhatsApp"
-                    >
-                      <MessageCircle size={18} />
-                    </a>
-                    <button className="icon-btn"><MoreVertical size={18} /></button>
-                  </div>
-                </td>
-              </tr>
+                </Link>
+              </motion.div>
             ))}
-          </tbody>
-        </table>
-        
-        {filteredLeads.length === 0 && (
-          <div className="empty-state">
-            <Users size={48} />
-            <p>No leads found matching your criteria.</p>
-          </div>
-        )}
+          </AnimatePresence>
+        </div>
       </div>
 
-      <LeadModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSubmit={handleAddLead}
-      />
-
+      {/* FAB for Adding Lead */}
+      <Link href="/leads/add" className="android-fab">
+        <Plus size={28} />
+      </Link>
     </div>
   );
-};
-
-export default AllLeadsPage;
+}

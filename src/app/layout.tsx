@@ -1,15 +1,26 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ClientLayout from "@/components/ClientLayout";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
-  title: "JK Properties Lead Manager",
-  description: "Production-ready Real Estate Lead Management System",
+  title: "JK Properties CRM",
+  description: "Premium Lead Management for JK Properties",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "JK Leads",
+  },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2d1b10",
+  themeColor: "#0a2e2a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -20,9 +31,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        <AuthProvider>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </AuthProvider>
       </body>
     </html>
   );
