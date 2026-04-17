@@ -1,7 +1,8 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Target, Calendar, Building2, UsersRound, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import NavItem from "./NavItem";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NAV_CONFIG = [
   {
@@ -36,12 +37,11 @@ const NAV_CONFIG = [
 
 const DesktopSidebar = memo(() => {
   const pathname = usePathname();
-  const [isCompact, setIsCompact] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("sidebar_compact");
-    if (stored) setIsCompact(stored === "true");
-  }, []);
+  const [isCompact, setIsCompact] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("sidebar_compact") === "true";
+  });
+  const { accessProfile, user, logout } = useAuth();
 
   const toggleCompact = () => {
     setIsCompact(prev => {
@@ -67,11 +67,17 @@ const DesktopSidebar = memo(() => {
       </div>
 
       <nav className="sidebar-menu-scroll">
-        {NAV_CONFIG.map((group, idx) => (
+        {NAV_CONFIG.map((group, idx) => {
+          const visibleItems = group.items.filter((item) => {
+            if (!accessProfile) return false;
+            return accessProfile.allowedRoutes.includes(item.href);
+          });
+          if (visibleItems.length === 0) return null;
+          return (
           <div key={idx} className="nav-group">
             {!isCompact && <span className="nav-group-title">{group.group}</span>}
             <div className="nav-group-items">
-              {group.items.map(item => (
+              {visibleItems.map(item => (
                 <NavItem 
                   key={item.id}
                   href={item.href}
@@ -84,7 +90,8 @@ const DesktopSidebar = memo(() => {
               ))}
             </div>
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer-profile">
@@ -92,11 +99,11 @@ const DesktopSidebar = memo(() => {
             <div className="s-avatar">SK</div>
             {!isCompact && (
               <div className="s-profile-info">
-                 <span className="s-name">Shivraj Kale</span>
-                 <span className="s-role">Administrator</span>
+                 <span className="s-name">{user?.displayName ?? "User"}</span>
+                 <span className="s-role">{accessProfile?.role ?? "No Role"}</span>
               </div>
             )}
-            <button className="s-logout" title="Logout"><LogOut size={18} /></button>
+            <button className="s-logout" title="Logout" onClick={logout}><LogOut size={18} /></button>
          </div>
       </div>
     </aside>

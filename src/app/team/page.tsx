@@ -10,23 +10,30 @@ import {
   UserPlus,
   X,
 } from "lucide-react";
+import {
+  collection,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useEffect } from "react";
 
 type TeamStatus = "Active" | "On Leave" | "Inactive";
+type TeamRole = "Administrator" | "Sales Manager" | "Sales Agent";
 type TeamMember = {
   id: string;
+  email: string;
   name: string;
-  role: string;
+  role: TeamRole;
   status: TeamStatus;
 };
 
-const INITIAL_TEAM_MEMBERS: TeamMember[] = [
-  { id: "1", name: "Shivraj Kale", role: "Administrator", status: "Active" },
-  { id: "2", name: "Riya Sharma", role: "Sales Manager", status: "Active" },
-  { id: "3", name: "Aman Verma", role: "Sales Agent", status: "On Leave" },
-  { id: "4", name: "Neha Patil", role: "Sales Agent", status: "Active" },
-];
-
-const ROLE_OPTIONS = ["All", "Administrator", "Sales Manager", "Sales Agent"];
+const ROLE_OPTIONS: Array<"All" | TeamRole> = ["All", "Administrator", "Sales Manager", "Sales Agent"];
 const STATUS_OPTIONS: Array<"All" | TeamStatus> = ["All", "Active", "On Leave", "Inactive"];
 
 const sectionContainerStyle = {
@@ -36,14 +43,45 @@ const sectionContainerStyle = {
 };
 
 export default function TeamPage() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(INITIAL_TEAM_MEMBERS);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState("All");
+  const [selectedRole, setSelectedRole] = useState<"All" | TeamRole>("All");
   const [selectedStatus, setSelectedStatus] = useState<"All" | TeamStatus>("All");
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
-  const [newRole, setNewRole] = useState("Sales Agent");
+  const [newEmail, setNewEmail] = useState("");
+  const [newRole, setNewRole] = useState<TeamRole>("Sales Agent");
   const [newStatus, setNewStatus] = useState<TeamStatus>("Active");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        if (!db) return;
+        const teamQuery = query(collection(db, "teamMembers"), orderBy("createdAt", "desc"));
+        const snapshot = await getDocs(teamQuery);
+        const members = snapshot.docs.map((memberDoc) => {
+          const data = memberDoc.data() as Partial<TeamMember>;
+          return {
+            id: memberDoc.id,
+            name: data.name ?? "",
+            email: data.email ?? memberDoc.id,
+            role: (data.role as TeamRole) ?? "Sales Agent",
+            status: (data.status as TeamStatus) ?? "Inactive",
+          };
+        });
+        setTeamMembers(members);
+      } catch (loadError) {
+        console.error("Failed to load team members", loadError);
+        setError("Unable to load team members.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMembers();
+  }, []);
 
   const filteredMembers = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -83,24 +121,70 @@ export default function TeamPage() {
   );
 
   const handleAddMember = () => {
-    if (!newName.trim()) return;
+    const normalizedName = newName.trim();
+    const normalizedEmail = newEmail.trim().toLowerCase();
+    if (!normalizedName || !normalizedEmail) return;
+    if (!db) {
+      setError("Firebase is not configured.");
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      setError("Enter a valid email address.");
+      return;
+    }
+
     const member: TeamMember = {
-      id: crypto.randomUUID(),
-      name: newName.trim(),
+      id: normalizedEmail,
+      email: normalizedEmail,
+      name: normalizedName,
       role: newRole,
       status: newStatus,
     };
-    setTeamMembers((prev) => [member, ...prev]);
-    setNewName("");
-    setNewRole("Sales Agent");
-    setNewStatus("Active");
-    setShowAddForm(false);
+
+    setDoc(doc(db, "teamMembers", normalizedEmail), {
+      ...member,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+      .then(() => {
+        setTeamMembers((prev) => {
+          const exists = prev.some((teamMember) => teamMember.id === normalizedEmail);
+          if (exists) {
+            return prev.map((teamMember) =>
+              teamMember.id === normalizedEmail ? member : teamMember,
+            );
+          }
+          return [member, ...prev];
+        });
+        setError("");
+        setNewName("");
+        setNewEmail("");
+        setNewRole("Sales Agent");
+        setNewStatus("Active");
+        setShowAddForm(false);
+      })
+      .catch((saveError) => {
+        console.error("Failed to save team member", saveError);
+        setError("Could not save member. Check Firestore rules.");
+      });
   };
 
   const updateStatus = (id: string, status: TeamStatus) => {
-    setTeamMembers((prev) =>
-      prev.map((member) => (member.id === id ? { ...member, status } : member)),
-    );
+    if (!db) return;
+    updateDoc(doc(db, "teamMembers", id), {
+      status,
+      updatedAt: serverTimestamp(),
+    })
+      .then(() => {
+        setTeamMembers((prev) =>
+          prev.map((member) => (member.id === id ? { ...member, status } : member)),
+        );
+      })
+      .catch((updateError) => {
+        console.error("Failed to update status", updateError);
+        setError("Could not update member status.");
+      });
   };
 
   return (
@@ -161,10 +245,23 @@ export default function TeamPage() {
                 outline: "none",
               }}
             />
+            <input
+              type="email"
+              placeholder="Email for Google login access"
+              value={newEmail}
+              onChange={(event) => setNewEmail(event.target.value)}
+              style={{
+                height: 36,
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "0 10px",
+                outline: "none",
+              }}
+            />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <select
                 value={newRole}
-                onChange={(event) => setNewRole(event.target.value)}
+                onChange={(event) => setNewRole(event.target.value as TeamRole)}
                 style={{
                   height: 36,
                   border: "1px solid var(--border)",
@@ -200,12 +297,28 @@ export default function TeamPage() {
             <button
               className="banner-action-btn"
               onClick={handleAddMember}
-              disabled={!newName.trim()}
-              style={{ opacity: !newName.trim() ? 0.6 : 1 }}
+              disabled={!newName.trim() || !newEmail.trim()}
+              style={{ opacity: !newName.trim() || !newEmail.trim() ? 0.6 : 1 }}
             >
               <UserPlus size={14} style={{ marginRight: 4 }} />
               Save Member
             </button>
+          </div>
+        )}
+
+        {error && (
+          <div
+            style={{
+              ...sectionContainerStyle,
+              marginBottom: "12px",
+              padding: "10px 12px",
+              color: "#b91c1c",
+              borderColor: "rgba(185, 28, 28, 0.2)",
+              background: "rgba(254, 226, 226, 0.35)",
+              fontSize: 13,
+            }}
+          >
+            {error}
           </div>
         )}
 
@@ -320,7 +433,20 @@ export default function TeamPage() {
         <div style={{ ...sectionContainerStyle, padding: "18px" }}>
           <h4 style={{ margin: "0 0 12px 0" }}>Team Directory</h4>
           <div style={{ display: "grid", gap: 10 }}>
-            {filteredMembers.length === 0 ? (
+            {loading ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  border: "1px dashed var(--border)",
+                  borderRadius: 12,
+                  padding: "18px 12px",
+                  color: "var(--text-muted)",
+                  fontSize: 14,
+                }}
+              >
+                Loading team members...
+              </div>
+            ) : filteredMembers.length === 0 ? (
               <div
                 style={{
                   textAlign: "center",
@@ -349,7 +475,7 @@ export default function TeamPage() {
                   <div>
                     <div style={{ fontWeight: 600 }}>{member.name}</div>
                     <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                      {member.role}
+                      {member.role} | {member.email}
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

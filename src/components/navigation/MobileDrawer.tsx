@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Users, Target, Calendar, Building2, UsersRound, BarChart3, Settings, LogOut, X } from "lucide-react";
 import NavItem from "./NavItem";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -40,7 +41,7 @@ const NAV_CONFIG = [
   }
 ];
 
-const drawerVariants: any = {
+const drawerVariants = {
   hidden: { x: "-100%" },
   visible: { x: 0, transition: { type: "tween", duration: 0.25 } },
   exit: { x: "-100%", transition: { type: "tween", duration: 0.2 } }
@@ -54,6 +55,7 @@ const overlayVariants = {
 
 const MobileDrawer = memo(({ isOpen, onClose }: MobileDrawerProps) => {
   const pathname = usePathname();
+  const { accessProfile, user, logout } = useAuth();
 
   return (
     <AnimatePresence>
@@ -93,34 +95,40 @@ const MobileDrawer = memo(({ isOpen, onClose }: MobileDrawerProps) => {
             </div>
 
             <nav className="drawer-menu-scroll">
-              {NAV_CONFIG.map((group, idx) => (
-                <div key={idx} className="nav-group">
-                  <span className="nav-group-title">{group.group}</span>
-                  <div className="nav-group-items">
-                    {group.items.map(item => (
-                      <NavItem 
-                        key={item.id}
-                        href={item.href}
-                        icon={item.icon}
-                        title={item.title}
-                        isActive={item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href)}
-                        onClick={onClose}
-                        badgeCount={item.badge}
-                      />
-                    ))}
+              {NAV_CONFIG.map((group, idx) => {
+                const visibleItems = group.items.filter((item) =>
+                  accessProfile ? accessProfile.allowedRoutes.includes(item.href) : false,
+                );
+                if (visibleItems.length === 0) return null;
+                return (
+                  <div key={idx} className="nav-group">
+                    <span className="nav-group-title">{group.group}</span>
+                    <div className="nav-group-items">
+                      {visibleItems.map(item => (
+                        <NavItem 
+                          key={item.id}
+                          href={item.href}
+                          icon={item.icon}
+                          title={item.title}
+                          isActive={item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href)}
+                          onClick={onClose}
+                          badgeCount={item.badge}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </nav>
 
             <div className="drawer-footer-profile">
                <div className="s-profile-wrap">
                   <div className="s-avatar">SK</div>
                   <div className="s-profile-info">
-                     <span className="s-name">Shivraj Kale</span>
-                     <span className="s-role">Administrator</span>
+                     <span className="s-name">{user?.displayName ?? "User"}</span>
+                     <span className="s-role">{accessProfile?.role ?? "No Role"}</span>
                   </div>
-                  <button className="s-logout"><LogOut size={18} /></button>
+                  <button className="s-logout" onClick={logout}><LogOut size={18} /></button>
                </div>
             </div>
           </motion.aside>

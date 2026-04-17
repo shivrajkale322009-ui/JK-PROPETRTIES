@@ -46,6 +46,12 @@ service cloud.firestore {
       // Users can only edit their own profile
       allow write: if isOwner(userId);
     }
+
+    // 4. Team access collection (email-based access control)
+    match /teamMembers/{emailId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
     
     // Fallback: Deny all other access
     match /{document=**} {
