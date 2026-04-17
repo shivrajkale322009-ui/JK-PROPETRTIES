@@ -1,34 +1,33 @@
 "use client";
 
-import { Plus, ShieldCheck, UserCheck, UsersRound } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Plus,
+  Search,
+  ShieldCheck,
+  UserCheck,
+  UsersRound,
+  UserPlus,
+  X,
+} from "lucide-react";
 
-const TEAM_METRICS = [
-  {
-    id: "total-members",
-    label: "Total Members",
-    value: "12",
-    icon: UsersRound,
-  },
-  {
-    id: "active-agents",
-    label: "Active Agents",
-    value: "9",
-    icon: UserCheck,
-  },
-  {
-    id: "role-types",
-    label: "Role Types",
-    value: "4",
-    icon: ShieldCheck,
-  },
-];
+type TeamStatus = "Active" | "On Leave" | "Inactive";
+type TeamMember = {
+  id: string;
+  name: string;
+  role: string;
+  status: TeamStatus;
+};
 
-const TEAM_MEMBERS = [
+const INITIAL_TEAM_MEMBERS: TeamMember[] = [
   { id: "1", name: "Shivraj Kale", role: "Administrator", status: "Active" },
   { id: "2", name: "Riya Sharma", role: "Sales Manager", status: "Active" },
   { id: "3", name: "Aman Verma", role: "Sales Agent", status: "On Leave" },
   { id: "4", name: "Neha Patil", role: "Sales Agent", status: "Active" },
 ];
+
+const ROLE_OPTIONS = ["All", "Administrator", "Sales Manager", "Sales Agent"];
+const STATUS_OPTIONS: Array<"All" | TeamStatus> = ["All", "Active", "On Leave", "Inactive"];
 
 const sectionContainerStyle = {
   background: "white",
@@ -37,6 +36,73 @@ const sectionContainerStyle = {
 };
 
 export default function TeamPage() {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(INITIAL_TEAM_MEMBERS);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRole, setSelectedRole] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState<"All" | TeamStatus>("All");
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newRole, setNewRole] = useState("Sales Agent");
+  const [newStatus, setNewStatus] = useState<TeamStatus>("Active");
+
+  const filteredMembers = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    return teamMembers.filter((member) => {
+      const matchesSearch =
+        !normalizedSearch ||
+        member.name.toLowerCase().includes(normalizedSearch) ||
+        member.role.toLowerCase().includes(normalizedSearch);
+      const matchesRole = selectedRole === "All" || member.role === selectedRole;
+      const matchesStatus = selectedStatus === "All" || member.status === selectedStatus;
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [searchTerm, selectedRole, selectedStatus, teamMembers]);
+
+  const metrics = useMemo(
+    () => [
+      {
+        id: "total-members",
+        label: "Total Members",
+        value: String(filteredMembers.length),
+        icon: UsersRound,
+      },
+      {
+        id: "active-agents",
+        label: "Active Agents",
+        value: String(filteredMembers.filter((member) => member.status === "Active").length),
+        icon: UserCheck,
+      },
+      {
+        id: "role-types",
+        label: "Role Types",
+        value: String(new Set(filteredMembers.map((member) => member.role)).size),
+        icon: ShieldCheck,
+      },
+    ],
+    [filteredMembers],
+  );
+
+  const handleAddMember = () => {
+    if (!newName.trim()) return;
+    const member: TeamMember = {
+      id: crypto.randomUUID(),
+      name: newName.trim(),
+      role: newRole,
+      status: newStatus,
+    };
+    setTeamMembers((prev) => [member, ...prev]);
+    setNewName("");
+    setNewRole("Sales Agent");
+    setNewStatus("Active");
+    setShowAddForm(false);
+  };
+
+  const updateStatus = (id: string, status: TeamStatus) => {
+    setTeamMembers((prev) =>
+      prev.map((member) => (member.id === id ? { ...member, status } : member)),
+    );
+  };
+
   return (
     <div className="mobile-view compact-crm">
       <div className="app-bar compact-app-bar">
@@ -51,9 +117,163 @@ export default function TeamPage() {
             <h4>Sales Team</h4>
             <p>Manage your agents, responsibilities, and role-based access.</p>
           </div>
-          <button className="banner-action-btn">
+          <button className="banner-action-btn" onClick={() => setShowAddForm((prev) => !prev)}>
             <Plus size={14} style={{ marginRight: 4 }} /> Add Agent
           </button>
+        </div>
+
+        {showAddForm && (
+          <div
+            style={{
+              ...sectionContainerStyle,
+              padding: "14px",
+              marginBottom: "12px",
+              display: "grid",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <h4 style={{ margin: 0, fontSize: 15 }}>Add Team Member</h4>
+              <button
+                className="icon-btn-transparent"
+                onClick={() => setShowAddForm(false)}
+                title="Close form"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Full name"
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              style={{
+                height: 36,
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "0 10px",
+                outline: "none",
+              }}
+            />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <select
+                value={newRole}
+                onChange={(event) => setNewRole(event.target.value)}
+                style={{
+                  height: 36,
+                  border: "1px solid var(--border)",
+                  borderRadius: 10,
+                  padding: "0 8px",
+                  background: "#fff",
+                }}
+              >
+                {ROLE_OPTIONS.filter((option) => option !== "All").map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={newStatus}
+                onChange={(event) => setNewStatus(event.target.value as TeamStatus)}
+                style={{
+                  height: 36,
+                  border: "1px solid var(--border)",
+                  borderRadius: 10,
+                  padding: "0 8px",
+                  background: "#fff",
+                }}
+              >
+                {STATUS_OPTIONS.filter((option) => option !== "All").map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              className="banner-action-btn"
+              onClick={handleAddMember}
+              disabled={!newName.trim()}
+              style={{ opacity: !newName.trim() ? 0.6 : 1 }}
+            >
+              <UserPlus size={14} style={{ marginRight: 4 }} />
+              Save Member
+            </button>
+          </div>
+        )}
+
+        <div
+          style={{
+            ...sectionContainerStyle,
+            padding: "12px",
+            marginBottom: "12px",
+            display: "grid",
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+              padding: "0 10px",
+              height: 38,
+            }}
+          >
+            <Search size={16} style={{ opacity: 0.7 }} />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search by name or role..."
+              style={{ border: 0, outline: "none", width: "100%", background: "transparent" }}
+            />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <select
+              value={selectedRole}
+              onChange={(event) => setSelectedRole(event.target.value)}
+              style={{
+                height: 36,
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "0 8px",
+                background: "#fff",
+              }}
+            >
+              {ROLE_OPTIONS.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+            <select
+              value={selectedStatus}
+              onChange={(event) => setSelectedStatus(event.target.value as "All" | TeamStatus)}
+              style={{
+                height: 36,
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "0 8px",
+                background: "#fff",
+              }}
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div
@@ -66,7 +286,7 @@ export default function TeamPage() {
             marginBottom: "12px",
           }}
         >
-          {TEAM_METRICS.map((metric) => {
+          {metrics.map((metric) => {
             const Icon = metric.icon;
             return (
               <div
@@ -100,44 +320,85 @@ export default function TeamPage() {
         <div style={{ ...sectionContainerStyle, padding: "18px" }}>
           <h4 style={{ margin: "0 0 12px 0" }}>Team Directory</h4>
           <div style={{ display: "grid", gap: 10 }}>
-            {TEAM_MEMBERS.map((member) => (
+            {filteredMembers.length === 0 ? (
               <div
-                key={member.id}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  border: "1px solid var(--border)",
+                  textAlign: "center",
+                  border: "1px dashed var(--border)",
                   borderRadius: 12,
-                  padding: "10px 12px",
+                  padding: "18px 12px",
+                  color: "var(--text-muted)",
+                  fontSize: 14,
                 }}
               >
-                <div>
-                  <div style={{ fontWeight: 600 }}>{member.name}</div>
-                  <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                    {member.role}
-                  </div>
-                </div>
-                <span
+                No team member found for current filters.
+              </div>
+            ) : (
+              filteredMembers.map((member) => (
+                <div
+                  key={member.id}
                   style={{
-                    fontSize: 12,
-                    padding: "4px 8px",
-                    borderRadius: 999,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                     border: "1px solid var(--border)",
-                    background:
-                      member.status === "Active"
-                        ? "rgba(34,197,94,0.10)"
-                        : "rgba(245,158,11,0.12)",
-                    color:
-                      member.status === "Active"
-                        ? "rgb(21,128,61)"
-                        : "rgb(180,83,9)",
+                    borderRadius: 12,
+                    padding: "10px 12px",
                   }}
                 >
-                  {member.status}
-                </span>
-              </div>
-            ))}
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{member.name}</div>
+                    <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                      {member.role}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <select
+                      value={member.status}
+                      onChange={(event) =>
+                        updateStatus(member.id, event.target.value as TeamStatus)
+                      }
+                      style={{
+                        height: 30,
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                        padding: "0 8px",
+                        fontSize: 12,
+                        background: "#fff",
+                      }}
+                    >
+                      {STATUS_OPTIONS.filter((option) => option !== "All").map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        padding: "4px 8px",
+                        borderRadius: 999,
+                        border: "1px solid var(--border)",
+                        background:
+                          member.status === "Active"
+                            ? "rgba(34,197,94,0.10)"
+                            : member.status === "On Leave"
+                              ? "rgba(245,158,11,0.12)"
+                              : "rgba(148,163,184,0.16)",
+                        color:
+                          member.status === "Active"
+                            ? "rgb(21,128,61)"
+                            : member.status === "On Leave"
+                              ? "rgb(180,83,9)"
+                              : "rgb(71,85,105)",
+                      }}
+                    >
+                      {member.status}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
