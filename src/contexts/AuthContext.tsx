@@ -1,8 +1,17 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { User, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -39,11 +48,65 @@ const DEFAULT_ROUTE_BY_ROLE: Record<UserRole, string> = {
 
 const PUBLIC_ROUTES = ["/login"];
 
-const normalizeRoute = (route: string) => {
-  if (!route) return "/";
-  if (route.startsWith("/leads/")) return "/leads";
-  return route;
-};
+/** True if pathname is allowed: "/" matches only exactly; other bases match subpaths too. */
+function matchesAllowedRoute(pathname: string, allowedRoutes: string[]): boolean {
+  const path = pathname || "/";
+  return allowedRoutes.some((base) => {
+    if (base === "/") return path === "/";
+    return path === base || path.startsWith(`${base}/`);
+  });
+}
+
+function normalizeTeamStatus(raw: unknown): TeamStatus | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim().toLowerCase();
+  if (s === "active") return "Active";
+  if (s === "on leave" || s === "on_leave" || s === "leave") return "On Leave";
+  if (s === "inactive") return "Inactive";
+  return null;
+}
+
+function normalizeTeamRole(raw: unknown): UserRole | null {
+  if (typeof raw !== "string") return null;
+  const r = raw.trim().toLowerCase();
+  if (r === "administrator" || r === "admin" || r === "super admin" || r === "superadmin" || r === "owner")
+    return "Administrator";
+  if (r === "sales manager" || r === "manager") return "Sales Manager";
+  if (r === "sales agent" || r === "agent") return "Sales Agent";
+  return null;
+}
+
+function accessProfileFromTeamData(data: Record<string, unknown>): AccessProfile | null {
+  const status = normalizeTeamStatus(data.status);
+  if (status !== "Active") return null;
+  const role = normalizeTeamRole(data.role);
+  if (!role) return null;
+  return {
+    role,
+    status,
+    allowedRoutes: ROLE_ROUTES[role] ?? ["/"],
+  };
+}
+
+async function fetchTeamAccessProfile(email: string): Promise<AccessProfile | null> {
+  if (!db) return null;
+  const emailKey = email.trim().toLowerCase();
+  if (!emailKey) return null;
+
+  const byId = await getDoc(doc(db, "teamMembers", emailKey));
+  if (byId.exists()) {
+    return accessProfileFromTeamData(byId.data() as Record<string, unknown>);
+  }
+
+  const byEmailField = query(
+    collection(db, "teamMembers"),
+    where("email", "==", emailKey),
+    limit(1),
+  );
+  const listed = await getDocs(byEmailField);
+  if (listed.empty) return null;
+  return accessProfileFromTeamData(listed.docs[0].data() as Record<string, unknown>);
+}
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -64,32 +127,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const canAccessRoute = (route: string) => {
-    if (PUBLIC_ROUTES.includes(route)) return true;
-    if (!accessProfile) return false;
-    const normalizedRoute = normalizeRoute(route);
-    return accessProfile.allowedRoutes.includes(normalizedRoute);
-  };
+  const canAccessRoute = useCallback(
+    (route: string) => {
+      if (PUBLIC_ROUTES.includes(route)) return true;
+      if (!accessProfile) return false;
+      return matchesAllowedRoute(route, accessProfile.allowedRoutes);
+    },
+    [accessProfile],
+  );
 
-  const getDefaultRoute = () => {
+  const getDefaultRoute = useCallback(() => {
     if (!accessProfile) return "/";
     return DEFAULT_ROUTE_BY_ROLE[accessProfile.role] ?? "/";
-  };
-
-  const loadAccessProfile = async (email?: string | null) => {
-    if (!db || !email) return null;
-    const emailKey = email.trim().toLowerCase();
-    const teamRef = doc(db, "teamMembers", emailKey);
-    const snap = await getDoc(teamRef);
-    if (!snap.exists()) return null;
-    const data = snap.data() as { role?: UserRole; status?: TeamStatus };
-    if (!data.role || !data.status || data.status !== "Active") return null;
-    return {
-      role: data.role,
-      status: data.status,
-      allowedRoutes: ROLE_ROUTES[data.role] ?? ["/"],
-    } satisfies AccessProfile;
-  };
+  }, [accessProfile]);
 
   useEffect(() => {
     if (!auth) return;
@@ -99,46 +149,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!currentUser) {
         setAccessProfile(null);
         setLoading(false);
-        if (pathname !== "/login") router.push("/login");
         return;
       }
 
-      const profile = await loadAccessProfile(currentUser.email);
+      const profile = currentUser.email ? await fetchTeamAccessProfile(currentUser.email) : null;
       if (!profile) {
         await signOut(auth);
         setAccessProfile(null);
         setLoading(false);
-        router.push("/login");
         return;
       }
 
       setAccessProfile(profile);
       setLoading(false);
-
-      if (pathname === "/login") {
-        router.push(DEFAULT_ROUTE_BY_ROLE[profile.role] ?? "/");
-        return;
-      }
-
-      const normalizedPath = normalizeRoute(pathname);
-      if (!profile.allowedRoutes.includes(normalizedPath)) {
-        router.push(DEFAULT_ROUTE_BY_ROLE[profile.role] ?? "/");
-      }
     });
 
     return () => unsubscribe();
-  }, [pathname, router]);
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (!user) {
+      if (pathname !== "/login") router.replace("/login");
+      return;
+    }
+
+    if (!accessProfile) return;
+
+    if (pathname === "/login") {
+      router.replace(DEFAULT_ROUTE_BY_ROLE[accessProfile.role] ?? "/");
+      return;
+    }
+
+    if (!matchesAllowedRoute(pathname, accessProfile.allowedRoutes)) {
+      router.replace(DEFAULT_ROUTE_BY_ROLE[accessProfile.role] ?? "/");
+    }
+  }, [loading, user, accessProfile, pathname, router]);
 
   const loginWithGoogle = async () => {
     if (!auth || !db) return;
     const provider = new GoogleAuthProvider();
     const result = await signInWithPopup(auth, provider);
     const signedInUser = result.user;
-    const profile = await loadAccessProfile(signedInUser.email);
+    const profile = signedInUser.email ? await fetchTeamAccessProfile(signedInUser.email) : null;
 
     if (!profile) {
       await signOut(auth);
-      throw new Error("Access denied. Ask admin to add your email in Team and mark status Active.");
+      const hint = signedInUser.email?.toLowerCase() ?? "your-email";
+      throw new Error(
+        `No access for ${hint}. In Firebase → Firestore → teamMembers, use Document ID "${hint}" (lowercase) with fields role: Administrator (or Admin) and status: Active — or add the same email in field "email".`,
+      );
     }
 
     await setDoc(

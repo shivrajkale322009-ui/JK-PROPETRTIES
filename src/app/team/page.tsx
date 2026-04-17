@@ -14,8 +14,6 @@ import {
   collection,
   doc,
   getDocs,
-  orderBy,
-  query,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -59,19 +57,21 @@ export default function TeamPage() {
     const loadMembers = async () => {
       try {
         if (!db) return;
-        const teamQuery = query(collection(db, "teamMembers"), orderBy("createdAt", "desc"));
-        const snapshot = await getDocs(teamQuery);
-        const members = snapshot.docs.map((memberDoc) => {
-          const data = memberDoc.data() as Partial<TeamMember>;
-          return {
+        const snapshot = await getDocs(collection(db, "teamMembers"));
+        const withCreated = snapshot.docs.map((memberDoc) => {
+          const data = memberDoc.data() as Partial<TeamMember> & { createdAt?: { toMillis?: () => number } };
+          const createdMs = typeof data.createdAt?.toMillis === "function" ? data.createdAt.toMillis() : 0;
+          const member: TeamMember = {
             id: memberDoc.id,
             name: data.name ?? "",
             email: data.email ?? memberDoc.id,
             role: (data.role as TeamRole) ?? "Sales Agent",
             status: (data.status as TeamStatus) ?? "Inactive",
           };
+          return { member, createdMs };
         });
-        setTeamMembers(members);
+        withCreated.sort((a, b) => b.createdMs - a.createdMs);
+        setTeamMembers(withCreated.map((row) => row.member));
       } catch (loadError) {
         console.error("Failed to load team members", loadError);
         setError("Unable to load team members.");

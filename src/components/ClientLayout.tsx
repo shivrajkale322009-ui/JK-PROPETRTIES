@@ -5,15 +5,12 @@ import DesktopSidebar from "@/components/navigation/Sidebar";
 import MobileDrawer from "@/components/navigation/MobileDrawer";
 import BottomNav from "@/components/navigation/BottomNav";
 import { MessageSquare } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { useAuth } from "@/contexts/AuthContext";
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
-  const { loading, canAccessRoute, getDefaultRoute } = useAuth();
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -34,13 +31,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
   }, []);
-
-  useEffect(() => {
-    if (loading || pathname === "/login") return;
-    if (!canAccessRoute(pathname)) {
-      router.replace(getDefaultRoute());
-    }
-  }, [canAccessRoute, getDefaultRoute, loading, pathname, router]);
 
   if (pathname === '/login') {
     return <main className="app-main login-main">{children}</main>;
