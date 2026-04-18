@@ -1,6 +1,6 @@
 import React, { memo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Target, Calendar, Building2, UsersRound, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Users, Target, Calendar, Building2, UsersRound, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
 import NavItem from "./NavItem";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -12,6 +12,7 @@ const NAV_CONFIG = [
       { id: "leads", title: "Leads", href: "/leads", icon: <Users size={20} />, badge: 3 },
       { id: "pipeline", title: "Pipeline", href: "/pipeline", icon: <Target size={20} /> },
       { id: "followups", title: "Follow-ups", href: "/follow-ups", icon: <Calendar size={20} />, badge: 5 },
+      { id: "whatsapp", title: "WhatsApp", href: "/whatsapp", icon: <MessageSquare size={20} /> },
     ]
   },
   {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Users, Target, Calendar,
-  Building2, BarChart3, Settings, LogOut, Plus, X, Menu
+  Building2, BarChart3, Settings, LogOut, Plus, X, Menu, MessageSquare
 } from "lucide-react";
 
 interface SidebarProps {
@@ -17,6 +17,7 @@ const menuItems = [
   { title: "Dashboard",  icon: <LayoutDashboard size={20} />, href: "/" },
   { title: "All Leads",  icon: <Users size={20} />,          href: "/leads" },
   { title: "Pipeline",   icon: <Target size={20} />,         href: "/pipeline" },
+  { title: "WhatsApp",   icon: <MessageSquare size={20} />,    href: "/whatsapp" },
   { title: "Follow-ups", icon: <Calendar size={20} />,       href: "/follow-ups" },
   { title: "Properties", icon: <Building2 size={20} />,      href: "/properties" },
   { title: "Reports",    icon: <BarChart3 size={20} />,      href: "/reports" },
@@ -25,6 +26,9 @@ const menuItems = [
 const Sidebar = ({ isOpen, onClose, onMenuToggle }: SidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
+  
+  console.log('WhatsApp menu item:', menuItems.find(item => item.title === 'WhatsApp'));
+  console.log('Menu items:', menuItems);
 
   const handleAddLead = () => {
     onClose?.();
@@ -74,6 +78,17 @@ const Sidebar = ({ isOpen, onClose, onMenuToggle }: SidebarProps) => {
             </Link>
           );
         })}
+        
+        {/* Hardcoded WhatsApp link as backup */}
+        <Link
+          href="/whatsapp"
+          className={`nav-link ${pathname?.startsWith('/whatsapp') ? "active" : ""}`}
+          onClick={onClose}
+          style={{ backgroundColor: '#10b981', color: 'white', padding: '12px 16px' }}
+        >
+          <MessageSquare size={20} />
+          <span>WhatsApp</span>
+        </Link>
       </nav>
 
       {/* Footer */}

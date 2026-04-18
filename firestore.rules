@@ -44,6 +44,11 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isStaff();
     }
+
+    // 5. Metadata — Property types, lead sources, etc.
+    match /metadata/{documentId} {
+      allow read, write: if isAuthenticated();
+    }
     
     // Fallback: Deny all other access
     match /{document=**} {

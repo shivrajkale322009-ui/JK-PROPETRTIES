@@ -354,7 +354,7 @@ export default function TeamPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <select
               value={selectedRole}
-              onChange={(event) => setSelectedRole(event.target.value)}
+              onChange={(event) => setSelectedRole(event.target.value as TeamRole | "All")}
               style={{
                 height: 36,
                 border: "1px solid var(--border)",

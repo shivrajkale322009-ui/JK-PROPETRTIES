@@ -1,22 +1,53 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, UserPlus, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { leadAutomationService } from "@/lib/lead-automation";
 import { metadataService, Metadata } from "@/lib/metadata-service";
 
-export default function AddLead() {
+export default function EditLead({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const { id } = use(params);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [metadata, setMetadata] = useState<Metadata>({ propertyTypes: [], leadSources: [] });
   const [form, setForm] = useState({
-    name: "", phone: "", budget: "", location: "", type: "", source: "", notes: "",
+    name: "", phone: "", budget: "", location: "", propertyType: "", source: "", notes: "",
   });
 
   useEffect(() => {
-    metadataService.getMetadata().then(setMetadata);
-  }, []);
+    const fetchData = async () => {
+      try {
+        const [meta, leadData] = await Promise.all([
+          metadataService.getMetadata(),
+          leadAutomationService.getLead(id)
+        ]);
+        
+        setMetadata(meta);
+        if (leadData) {
+          setForm({
+            name: leadData.name || "",
+            phone: leadData.phone || "",
+            budget: leadData.budget || "",
+            location: leadData.location || "",
+            propertyType: leadData.propertyType || "",
+            source: leadData.source || "",
+            notes: leadData.notes || "",
+          });
+        } else {
+          alert("Lead not found");
+          router.push("/leads");
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [id, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,22 +57,22 @@ export default function AddLead() {
     }
 
     try {
-      setLoading(true);
-      await leadAutomationService.createManualLead({
+      setSaving(true);
+      await leadAutomationService.updateLead(id, {
         name: form.name,
         phone: form.phone,
         budget: form.budget,
         location: form.location,
-        propertyType: form.type,
+        propertyType: form.propertyType,
         source: form.source as any,
         notes: form.notes,
       });
       router.push("/leads");
     } catch (error) {
-      console.error("Error saving lead:", error);
-      alert("Failed to save lead. Please try again.");
+      console.error("Error updating lead:", error);
+      alert("Failed to update lead. Please try again.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -52,6 +83,16 @@ export default function AddLead() {
     { key: "location",   label: "Area Preference", type: "text",   placeholder: "e.g. Baner, Wakad" },
   ];
 
+  if (loading) {
+    return (
+      <div className="mobile-view">
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 size={32} className="animate-spin text-gold" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mobile-view">
       <div className="app-bar">
@@ -59,7 +100,7 @@ export default function AddLead() {
           <button className="icon-btn-transparent" onClick={() => router.back()}>
             <ArrowLeft size={24} />
           </button>
-          <h1 className="native-title">Add New Lead</h1>
+          <h1 className="native-title">Edit Lead</h1>
           <div style={{ width: 40 }} />
         </div>
       </div>
@@ -89,8 +130,8 @@ export default function AddLead() {
             <label>Property Type</label>
             <select
               className="native-select"
-              value={form.type}
-              onChange={e => setForm(prev => ({ ...prev, type: e.target.value }))}
+              value={form.propertyType}
+              onChange={e => setForm(prev => ({ ...prev, propertyType: e.target.value }))}
             >
               <option value="">Select type...</option>
               {metadata.propertyTypes.map(type => (
@@ -125,9 +166,9 @@ export default function AddLead() {
             />
           </div>
 
-          <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? <Loader2 size={20} className="animate-spin" /> : <UserPlus size={20} />}
-            {loading ? "Saving..." : "Save Lead"}
+          <button type="submit" className="submit-btn" disabled={saving}>
+            {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+            {saving ? "Updating..." : "Update Lead"}
           </button>
         </motion.form>
       </div>

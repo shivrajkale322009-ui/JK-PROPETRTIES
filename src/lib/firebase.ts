@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getFirestore, Firestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.trim(),
@@ -25,6 +25,12 @@ const app = getApps().length > 0
   : (firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null);
 
 const auth = (app ? getAuth(app) : null) as Auth;
-const db = (app ? getFirestore(app) : null) as Firestore;
+
+// Initialize Firestore with settings to avoid internal assertion errors
+const db = app ? initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+}) : null as unknown as Firestore;
 
 export { app, auth, db };

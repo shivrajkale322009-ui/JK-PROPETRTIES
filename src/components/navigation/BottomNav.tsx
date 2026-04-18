@@ -34,10 +34,12 @@ const BottomNav = memo(() => {
           <span>Tasks</span>
         </Link>
       )}
-      <button className="b-nav-item" onClick={() => window.open("https://wa.me/", "_blank")}>
-         <MessageSquare size={22} />
-         <span>WhatsApp</span>
-      </button>
+      {canAccessRoute("/whatsapp") && (
+        <Link href="/whatsapp" className={`b-nav-item ${pathname === "/whatsapp" ? "active" : ""}`}>
+           <MessageSquare size={22} />
+           <span>WhatsApp</span>
+        </Link>
+      )}
     </nav>
   );
 });
