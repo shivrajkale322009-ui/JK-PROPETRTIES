@@ -18,7 +18,6 @@ const NAV_CONFIG = [
       { id: "leads", title: "Leads", href: "/leads", icon: <Users size={20} />, badge: 3 },
       { id: "pipeline", title: "Pipeline", href: "/pipeline", icon: <Target size={20} /> },
       { id: "followups", title: "Follow-ups", href: "/follow-ups", icon: <Calendar size={20} />, badge: 5 },
-      { id: "whatsapp", title: "WhatsApp", href: "/whatsapp", icon: <MessageSquare size={20} /> },
     ]
   },
   {
@@ -44,8 +43,8 @@ const NAV_CONFIG = [
 
 const drawerVariants = {
   hidden: { x: "-100%" },
-  visible: { x: 0, transition: { type: "tween", duration: 0.25 } },
-  exit: { x: "-100%", transition: { type: "tween", duration: 0.2 } }
+  visible: { x: 0, transition: { type: "tween" as const, duration: 0.25 } },
+  exit: { x: "-100%", transition: { type: "tween" as const, duration: 0.2 } }
 };
 
 const overlayVariants = {

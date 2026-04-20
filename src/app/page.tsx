@@ -14,8 +14,6 @@ import dynamicNext from "next/dynamic";
 const StatsBar = dynamicNext(() => import("@/components/dashboard/StatsBar"), { ssr: false });
 const LeadsTable = dynamicNext(() => import("@/components/dashboard/LeadsTable"), { ssr: false });
 const TaskWidget = dynamicNext(() => import("@/components/dashboard/TaskWidget"), { ssr: false });
-const AIChat = dynamicNext(() => import("@/components/ai/AIChat"), { ssr: false });
-const AIInsights = dynamicNext(() => import("@/components/ai/AIInsights"), { ssr: false });
 
 export default function Dashboard() {
   const [leads, setLeads] = useState<any[]>([]);
@@ -78,11 +76,6 @@ export default function Dashboard() {
 
       <div className="content-area compact-mode">
         
-        {/* AI Assistant - Moved to top as per user request */}
-        <section className="dashboard-section">
-          <AIChat leads={leads} isInline={true} />
-        </section>
-
         {/* Compact Stats Strip */}
         <section className="dashboard-section">
            <StatsBar totalLeads={aggregates.totalLeads} hotLeads={aggregates.hotLeads} loading={loading} />
@@ -98,13 +91,9 @@ export default function Dashboard() {
             <LeadsTable leads={leads} loading={loading} />
           </section>
 
-          {/* Secondary Column: Tasks & AI Insights */}
+          {/* Secondary Column: Tasks */}
           <section className="dashboard-section side-col">
             <TaskWidget />
-            {/* AI Insights Widget */}
-            <div className="dashboard-section" style={{ marginTop: '16px' }}>
-              <AIInsights leads={leads} />
-            </div>
           </section>
         </div>
       </div>
