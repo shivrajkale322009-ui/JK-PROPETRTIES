@@ -75,7 +75,6 @@ export default function Dashboard() {
       </motion.div>
 
       <div className="content-area compact-mode">
-        
         {/* Compact Stats Strip */}
         <section className="dashboard-section">
            <StatsBar totalLeads={aggregates.totalLeads} hotLeads={aggregates.hotLeads} loading={loading} />
