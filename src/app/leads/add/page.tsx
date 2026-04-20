@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, UserPlus, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import { leadAutomationService } from "@/lib/lead-automation";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { metadataService, Metadata } from "@/lib/metadata-service";
 
 export default function AddLead() {
@@ -27,14 +28,17 @@ export default function AddLead() {
 
     try {
       setLoading(true);
-      await leadAutomationService.createManualLead({
+      await addDoc(collection(db, "leads"), {
         name: form.name,
         phone: form.phone,
         budget: form.budget,
         location: form.location,
         propertyType: form.type,
-        source: form.source as any,
+        source: form.source,
         notes: form.notes,
+        status: "New Lead",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       });
       router.push("/leads");
     } catch (error) {
