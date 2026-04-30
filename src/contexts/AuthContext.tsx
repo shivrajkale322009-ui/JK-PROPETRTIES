@@ -35,9 +35,9 @@ interface AuthContextType {
 }
 
 const ROLE_ROUTES: Record<UserRole, string[]> = {
-  Administrator: ["/", "/leads", "/pipeline", "/follow-ups", "/properties", "/team", "/reports", "/settings", "/whatsapp"],
-  "Sales Manager": ["/", "/leads", "/pipeline", "/follow-ups", "/properties", "/reports", "/whatsapp"],
-  "Sales Agent": ["/", "/leads", "/pipeline", "/follow-ups", "/properties", "/whatsapp"],
+  Administrator: ["/", "/leads", "/pipeline", "/calls", "/follow-ups", "/properties", "/team", "/reports", "/settings", "/whatsapp"],
+  "Sales Manager": ["/", "/leads", "/pipeline", "/calls", "/follow-ups", "/properties", "/reports", "/whatsapp"],
+  "Sales Agent": ["/", "/leads", "/pipeline", "/calls", "/follow-ups", "/properties", "/whatsapp"],
 };
 
 const DEFAULT_ROUTE_BY_ROLE: Record<UserRole, string> = {
